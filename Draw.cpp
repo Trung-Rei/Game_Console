@@ -10,11 +10,42 @@
 #define KEY_RIGHT 77
 #define KEY_ESC 27
 #define KEY_ENTER 13
+#define KEY_S 115
+#define KEY_E 101
 
 struct Pen
 {
 	char Char;
 };
+
+struct Buff
+{
+	COORD Start, End;
+	unsigned char Maxtrix[256][256];
+};
+
+void InitBuff(Buff &Scr)
+{
+	Scr.Start = Scr.End = {0, 0};
+	memset(&Scr.Maxtrix, 32, sizeof(Scr));
+}
+
+void ExportBuff(Buff &Scr)
+{
+	std::ifstream Data;
+	Data.open("Path.txt");
+	std::string Path;
+	getline(Data, Path, '\n');
+	Data.close();
+	std::ofstream Ex(Path);
+	Ex << Scr.End.Y - Scr.Start.Y + 1 << " " << Scr.End.X - Scr.Start.X + 1 << std::endl;
+	for (int i = Scr.Start.Y; i <= Scr.End.Y; i++)
+	{
+		for (int j = Scr.Start.X; j <= Scr.End.X; j++) Ex << (int) Scr.Maxtrix[j][i] << " ";
+		Ex << std::endl;
+	}
+	Ex.close();
+}
 
 void gotoXY(int x, int y)
 {
@@ -53,13 +84,14 @@ void InitPen(Pen &Status)
 	Status.Char = 32;
 }
 
-void PenExe(COORD CCP, Pen &Status)
+void PenExe(COORD CCP, Pen &Status, Buff &Scr)
 {
 	if (CCP.X < 16 && CCP.Y < 16)
 		Status.Char = CCP.X * 16 + CCP.Y;
 	else
 	{
 		std::cout << Status.Char;
+		Scr.Maxtrix[CCP.X][CCP.Y] = Status.Char;
 		gotoXY(CCP.X, CCP.Y);
 	}
 }
@@ -75,6 +107,8 @@ void main()
 	ASCII_Generate();
 	Pen Status;
 	InitPen(Status);
+	Buff Scr;
+	InitBuff(Scr);
 	char Char;
 	while (true)
 	{
@@ -83,7 +117,7 @@ void main()
 		switch (Char)
 		{
 			case KEY_ENTER:
-				PenExe(GetConsoleCursorPosition(), Status);
+				PenExe(GetConsoleCursorPosition(), Status, Scr);
 				break;
 			case KEY_UP:
 				MoveCursor(GetConsoleCursorPosition(), 0, -1);
@@ -96,6 +130,13 @@ void main()
 				break;
 			case KEY_RIGHT:
 				MoveCursor(GetConsoleCursorPosition(), 1, 0);
+				break;
+			case KEY_S:
+				Scr.Start = GetConsoleCursorPosition();
+				break;
+			case KEY_E:
+				Scr.End = GetConsoleCursorPosition();
+				ExportBuff(Scr);
 				break;
 		}
 	}
