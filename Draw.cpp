@@ -16,18 +16,21 @@
 struct Pen
 {
 	char Char;
+	int Color;
 };
 
 struct Buff
 {
 	COORD Start, End;
-	unsigned char Maxtrix[256][256];
+	unsigned char Char[256][256];
+	unsigned char Color[256][256];
 };
 
 void InitBuff(Buff &Scr)
 {
 	Scr.Start = Scr.End = {0, 0};
-	memset(&Scr.Maxtrix, 32, sizeof(Scr));
+	memset(&Scr.Char, 32, sizeof(Scr.Char));
+	memset(&Scr.Color, 15, sizeof(Scr.Color));
 }
 
 void ExportBuff(Buff &Scr)
@@ -41,7 +44,12 @@ void ExportBuff(Buff &Scr)
 	Ex << Scr.End.Y - Scr.Start.Y + 1 << " " << Scr.End.X - Scr.Start.X + 1 << std::endl;
 	for (int i = Scr.Start.Y; i <= Scr.End.Y; i++)
 	{
-		for (int j = Scr.Start.X; j <= Scr.End.X; j++) Ex << (int) Scr.Maxtrix[j][i] << " ";
+		for (int j = Scr.Start.X; j <= Scr.End.X; j++) Ex << (int) Scr.Char[j][i] << " ";
+		Ex << std::endl;
+	}
+	for (int i = Scr.Start.Y; i <= Scr.End.Y; i++)
+	{
+		for (int j = Scr.Start.X; j <= Scr.End.X; j++) Ex << (int) Scr.Color[j][i] << " ";
 		Ex << std::endl;
 	}
 	Ex.close();
@@ -54,6 +62,11 @@ void gotoXY(int x, int y)
 	SetConsoleCursorPosition(out, coord);
 }
 
+void SetColor(int value)
+{
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), value);
+}
+
 void ASCII_Generate()
 {
 	for (int i = 0; i < 16; i++)
@@ -62,6 +75,16 @@ void ASCII_Generate()
 			gotoXY(i, j);
 			std::cout << (char) (i * 16 + j);
 		}
+}
+
+void Color_Generate()
+{
+	for (int i = 0; i < 16; i++)
+	{
+		gotoXY(i, 16);
+		SetColor(i);
+		std::cout << (char) 219;
+	}
 }
 
 COORD GetConsoleCursorPosition()
@@ -82,6 +105,7 @@ COORD GetConsoleCursorPosition()
 void InitPen(Pen &Status)
 {
 	Status.Char = 32;
+	Status.Color = 15;
 }
 
 void PenExe(COORD CCP, Pen &Status, Buff &Scr)
@@ -89,11 +113,19 @@ void PenExe(COORD CCP, Pen &Status, Buff &Scr)
 	if (CCP.X < 16 && CCP.Y < 16)
 		Status.Char = CCP.X * 16 + CCP.Y;
 	else
-	{
-		std::cout << Status.Char;
-		Scr.Maxtrix[CCP.X][CCP.Y] = Status.Char;
-		gotoXY(CCP.X, CCP.Y);
-	}
+		if (CCP.X < 16 && CCP.Y == 16)
+		{
+			SetColor(CCP.X);
+			Status.Color = CCP.X;
+		}
+		else
+		{
+			
+			std::cout << Status.Char;
+			Scr.Char[CCP.X][CCP.Y] = Status.Char;
+			Scr.Color[CCP.X][CCP.Y] = Status.Color;
+			gotoXY(CCP.X, CCP.Y);
+		}
 }
 
 void MoveCursor(COORD CCP, int x, int y)
@@ -105,6 +137,7 @@ void MoveCursor(COORD CCP, int x, int y)
 void main()
 {
 	ASCII_Generate();
+	Color_Generate();
 	Pen Status;
 	InitPen(Status);
 	Buff Scr;
@@ -112,6 +145,8 @@ void main()
 	char Char;
 	while (true)
 	{
+		//Sleep(100);
+		if (!_kbhit()) continue;
 		Char = _getch();
 		if (Char == KEY_ESC) return;
 		switch (Char)
